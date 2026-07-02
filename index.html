@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Miso TAXI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+    .font-digital {
+      font-family: 'Share Tech Mono', monospace;
+    }
+    /* 말 달리는 애니메이션 (위아래로 흔들림) */
+    @keyframes gallop {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+      100% { transform: translateY(0); }
+    }
+    .galloping {
+      animation: gallop 0.3s infinite linear;
+    }
+  </style>
+</head>
+<body class="bg-gray-950 text-white flex items-center justify-center min-h-screen m-0 p-0 font-sans select-none">
+
+  <div class="flex flex-col h-screen w-full bg-gray-950 sm:max-w-md sm:mx-auto sm:border sm:border-gray-800 sm:shadow-2xl sm:rounded-3xl overflow-hidden relative">
+    
+    <header class="flex justify-between items-center p-6 bg-gray-900 border-b border-gray-800">
+      <h1 class="text-xl font-black tracking-wider text-yellow-400">Miso TAXI</h1>
+      <span id="status-badge" class="text-xs font-bold px-3 py-1 bg-green-500/20 text-green-500 rounded-full border border-green-500/50">
+        빈차
+      </span>
+    </header>
+
+    <main class="flex-1 flex flex-col items-center justify-center p-6 space-y-6">
+      
+      <div class="flex flex-col w-full bg-gray-900/80 rounded-3xl p-6 border border-gray-800 shadow-[inset_0_2px_20px_rgba(0,0,0,0.5)] relative min-h-[220px] justify-between">
+        <div class="flex justify-between items-start w-full">
+          <div class="w-16 h-12 flex items-center justify-center bg-gray-950/50 rounded-xl border border-gray-800/80">
+            <div id="horse-animation" class="text-3xl text-yellow-400">🐎</div>
+          </div>
+          <p class="text-gray-400 text-sm font-medium pt-2">현재 요금</p>
+        </div>
+
+        <div class="flex items-baseline justify-end space-x-2 w-full mt-4">
+          <span id="fare-display" class="text-7xl font-black text-yellow-400 font-digital tracking-tighter">
+            4,000
+          </span>
+          <span class="text-3xl font-bold text-yellow-400">원</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 w-full">
+        <div class="bg-gray-900 rounded-2xl p-5 flex flex-col items-center border border-gray-800 shadow-sm">
+          <span class="text-gray-500 text-xs font-bold mb-1">이동 거리</span>
+          <span class="text-2xl font-bold font-digital text-blue-400">
+            <span id="distance-display">0.00</span> <span class="text-sm font-sans">km</span>
+          </span>
+        </div>
+        
+        <div class="bg-gray-900 rounded-2xl p-5 flex flex-col items-center border border-gray-800 shadow-sm">
+          <span class="text-gray-500 text-xs font-bold mb-1">경과 시간</span>
+          <span id="time-display" class="text-2xl font-bold font-digital text-green-400">
+            00:00
+          </span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-5 gap-2 w-full pt-4">
+        <button id="btn-vacant" class="h-16 flex flex-col items-center justify-center rounded-xl text-sm font-black border bg-green-500 border-green-600 text-gray-950 shadow-lg active:scale-95 transition-all">
+          <span>빈차</span>
+        </button>
+        <button id="btn-driving" class="h-16 flex flex-col items-center justify-center rounded-xl text-sm font-black border bg-red-500 border-red-600 text-white shadow-lg active:scale-95 transition-all">
+          <span>주행</span>
+        </button>
+        <button id="btn-extra" class="h-16 flex flex-col items-center justify-center rounded-xl text-sm font-black border bg-orange-500 border-orange-600 text-white shadow-lg active:scale-95 transition-all">
+          <span>할증</span>
+        </button>
+        <button id="btn-complex" class="h-16 flex flex-col items-center justify-center rounded-xl text-sm font-black border bg-blue-500 border-blue-600 text-white shadow-lg active:scale-95 transition-all">
+          <span>복합</span>
+        </button>
+        <button id="btn-paid" class="h-16 flex flex-col items-center justify-center rounded-xl text-sm font-black border bg-gray-600 border-gray-700 text-white shadow-lg active:scale-95 transition-all">
+          <span>지불</span>
+        </button>
+      </div>
+    </main>
+
+  </div>
+
+  <script>
+    // --- 설정 및 변수 ---
+    const DAEGU_BASE_FARE = 4000;       // 기본 요금
+    const DAEGU_DIST_FARE_M = 130;     // 130m당 100원
+    const DAEGU_TIME_FARE_S = 31;      // 31초당 100원
+    const ADD_FARE_UNIT = 100;         
+    const SURCHARGE_RATE = 1.2;       // 할증 20%
+    const COMPLEX_RATE = 1.4;         // 복합 40%
+
+    let status = 'vacant'; 
+    let distance = 0;      // 누적 거리 (m)
+    let time = 0;         // 누적 시간 (초)
+    let fare = DAEGU_BASE_FARE; 
+    
+    let intervalId = null;
+    let watchId = null;
+    let prevPosition = null;
+
+    // --- HTML 엘리먼트 ---
+    const badge = document.getElementById('status-badge');
+    const fareDisplay = document.getElementById('fare-display');
+    const distanceDisplay = document.getElementById('distance-display');
+    const timeDisplay = document.getElementById('time-display');
+    const horseAnimation = document.getElementById('horse-animation');
+    const buttons = {
+      vacant: document.getElementById('btn-vacant'),
+      driving: document.getElementById('btn-driving'),
+      extra: document.getElementById('btn-extra'),
+      complex: document.getElementById('btn-complex'),
+      paid: document.getElementById('btn-paid')
+    };
+
+    // --- 유틸리티 함수 ---
+    function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
+      const R = 6371e3; 
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    // --- 핵심 로직 함수 ---
+    function updateUI() {
+      fareDisplay.textContent = fare.toLocaleString();
+      distanceDisplay.textContent = (distance / 1000).toFixed(2);
+      const mins = Math.floor(time / 60).toString().padStart(2, '0');
+      const secs = (time % 60).toString().padStart(2, '0');
+      timeDisplay.textContent = `${mins}:${secs}`;
+
+      if (status === 'driving' || status === 'extra' || status === 'complex') {
+        horseAnimation.classList.add('galloping');
+        badge.textContent = status === 'driving' ? '운행중' : (status === 'extra' ? '할증' : '복합');
+        badge.className = 'text-xs font-bold px-3 py-1 bg-red-500/20 text-red-500 rounded-full animate-pulse border border-red-500/50';
+      } else {
+        horseAnimation.classList.remove('galloping');
+        badge.textContent = status === 'vacant' ? '빈차' : '지불';
+        badge.className = `text-xs font-bold px-3 py-1 ${status === 'vacant' ? 'bg-green-500/20 text-green-500' : 'bg-gray-500/20 text-gray-500'} rounded-full border border-green-500/50`;
+      }
+    }
+
+    // ⭐ [수정된 핵심 로직] 시간 요금과 거리 요금을 완전히 독립적으로 더하는 방식
+    function calculateFare() {
+      let extraFare = 0;
+
+      // 1. 거리 추가 요금 계산 (2km 이후부터 130m당 100원)
+      if (distance > 2000) {
+        extraFare += Math.floor((distance - 2000) / DAEGU_DIST_FARE_M) * ADD_FARE_UNIT;
+      }
+
+      // 2. 시간 추가 요금 계산 (처음부터 시간 타이머에 따라 31초당 100원)
+      extraFare += Math.floor(time / DAEGU_TIME_FARE_S) * ADD_FARE_UNIT;
+
+      // 3. 기본 요금에 추가 요금 합산
+      let totalFare = DAEGU_BASE_FARE + extraFare;
+
+      // 4. 할증 비율 적용 및 100원 단위 반올림
+      if (status === 'extra') {
+        totalFare = Math.round((totalFare * SURCHARGE_RATE) / 100) * 100;
+      } else if (status === 'complex') {
+        totalFare = Math.round((totalFare * COMPLEX_RATE) / 100) * 100;
+      }
+
+      fare = totalFare;
+    }
+
+    function startMeter() {
+      status = 'driving';
+      distance = 0;
+      time = 0;
+      prevPosition = null;
+      fare = DAEGU_BASE_FARE;
+
+      // 1초마다 시간 타이머 증가 및 요금 실시간 계산
+      intervalId = setInterval(() => {
+        time++;
+        calculateFare();
+        updateUI();
+      }, 1000);
+
+      // 실제 GPS 위치 추적 작동
+      if ("geolocation" in navigator) {
+        watchId = navigator.geolocation.watchPosition(
+          (position) => {
+            const currentPosition = position.coords;
+            if (prevPosition) {
+              const d = getDistanceFromLatLonInM(prevPosition.latitude, prevPosition.longitude, currentPosition.latitude, currentPosition.longitude);
+              // 오차 방지를 위해 5m 이상 움직였을 때만 거리 누적 인정
+              if (d > 5) {
+                distance += d;
+              }
+            }
+            prevPosition = currentPosition;
+            calculateFare();
+            updateUI();
+          },
+          (error) => { console.error("GPS 수신 오류:", error.message); },
+          { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        );
+      } else { alert("GPS 기능을 사용할 수 없는 기기입니다."); }
+    }
+
+    function stopMeter() {
+      clearInterval(intervalId);
+      if (watchId) navigator.geolocation.clearWatch(watchId);
+    }
+
+    function resetMeter() {
+      stopMeter();
+      status = 'vacant';
+      fare = DAEGU_BASE_FARE;
+      distance = 0;
+      time = 0;
+      prevPosition = null;
+      updateUI();
+    }
+
+    // --- 이벤트 리스너 ---
+    buttons.vacant.addEventListener('click', () => { resetMeter(); });
+    buttons.driving.addEventListener('click', () => { resetMeter(); startMeter(); });
+    
+    buttons.extra.addEventListener('click', () => {
+      if (status === 'driving' || status === 'extra' || status === 'complex') {
+        status = 'extra';
+        calculateFare();
+        updateUI();
+      }
+    });
+
+    buttons.complex.addEventListener('click', () => {
+      if (status === 'driving' || status === 'extra' || status === 'complex') {
+        status = 'complex';
+        calculateFare();
+        updateUI();
+      }
+    });
+
+    buttons.paid.addEventListener('click', () => {
+      if (status === 'driving' || status === 'extra' || status === 'complex') {
+        stopMeter();
+        status = 'paid';
+        updateUI();
+      }
+    });
+
+    updateUI();
+  </script>
+</body>
+</html>
