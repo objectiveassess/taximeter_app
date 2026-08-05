@@ -2,32 +2,53 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <!-- 확대 방지 및 모바일 뷰포트 고정, viewport-fit=cover로 노치 영역까지 화면 확장 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Miso TAXI</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+    
+    * {
+      /* 모바일 터치 시 번쩍거리는 하이라이트 색상 제거 (앱처럼 보이게) */
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    body { 
+      /* 당겨서 새로고침 방지 및 불필요한 스크롤 완벽 차단 */
+      overscroll-behavior: none; 
+      touch-action: none;
+    }
+    
     .font-digital {
       font-family: 'Share Tech Mono', monospace;
     }
+    
     @keyframes gallop {
       0% { transform: translateY(0); }
       50% { transform: translateY(-4px); }
       100% { transform: translateY(0); }
     }
+    
     .galloping {
       animation: gallop 0.3s infinite linear;
     }
-    /* 브라우저 기본 스크롤 동작 완벽 차단 */
-    body {
-      overscroll-behavior: none; 
+    
+    /* 아이폰 노치/다이내믹 아일랜드 및 하단 홈 바 영역 침범 방지 */
+    .safe-area-container {
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      padding-left: env(safe-area-inset-left, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
     }
   </style>
 </head>
-<body class="bg-gray-950 text-white flex items-center justify-center m-0 p-0 font-sans select-none overflow-hidden h-[100dvh] w-screen">
+<body class="bg-gray-950 text-white flex items-center justify-center m-0 p-0 font-sans select-none h-[100dvh] w-screen overflow-hidden">
 
-  <div class="flex flex-col h-full w-full bg-gray-950 sm:max-w-md sm:mx-auto sm:border sm:border-gray-800 sm:shadow-2xl overflow-hidden relative">
+  <!-- safe-area-container 클래스 추가로 노치와 홈바 영역 확보 -->
+  <div class="safe-area-container flex flex-col h-full w-full bg-gray-950 sm:max-w-md sm:mx-auto sm:border sm:border-gray-800 sm:shadow-2xl overflow-hidden relative">
     
+    <!-- 상단 헤더 -->
     <header class="flex justify-between items-center px-5 py-4 bg-gray-900 border-b border-gray-800 shrink-0">
       <h1 class="text-xl font-black tracking-wider text-yellow-400">Miso TAXI</h1>
       <span id="status-badge" class="text-xs font-bold px-3 py-1 bg-green-500/20 text-green-500 rounded-full border border-green-500/50">
@@ -35,9 +56,11 @@
       </span>
     </header>
 
-    <main class="flex-1 flex flex-col justify-between p-4 pb-6 sm:p-6 w-full max-h-full">
+    <!-- 메인 화면 -->
+    <main class="flex-1 flex flex-col justify-between p-4 sm:p-6 w-full max-h-full">
       
-      <div class="flex flex-col w-full bg-gray-900/80 rounded-3xl p-5 sm:p-6 border border-gray-800 shadow-[inset_0_2px_20px_rgba(0,0,0,0.5)] relative flex-1 min-h-[160px] max-h-[250px] justify-between mb-4">
+      <!-- 요금 표시부 -->
+      <div class="flex flex-col w-full bg-gray-900/80 rounded-3xl p-5 sm:p-6 border border-gray-800 shadow-[inset_0_2px_20px_rgba(0,0,0,0.5)] relative flex-1 min-h-[160px] justify-between mb-4">
         <div class="flex justify-between items-start w-full">
           <div class="w-14 h-10 flex items-center justify-center bg-gray-950/50 rounded-xl border border-gray-800/80">
             <div id="horse-animation" class="text-2xl text-yellow-400">🐎</div>
@@ -53,6 +76,7 @@
         </div>
       </div>
 
+      <!-- 상태 정보 그리드 -->
       <div class="grid grid-cols-2 gap-3 w-full mb-4 shrink-0">
         <div class="bg-gray-900 rounded-2xl p-4 flex flex-col items-center border border-gray-800 shadow-sm">
           <span class="text-gray-500 text-[10px] sm:text-xs font-bold mb-1">이동 거리</span>
@@ -69,28 +93,19 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-5 gap-1.5 sm:gap-2 w-full shrink-0">
-        <button id="btn-vacant" class="h-12 sm:h-14 flex flex-col items-center justify-center rounded-xl text-xs font-black border bg-green-500 border-green-600 text-gray-950 shadow-lg active:scale-95 transition-all">
-          빈차
-        </button>
-        <button id="btn-driving" class="h-12 sm:h-14 flex flex-col items-center justify-center rounded-xl text-xs font-black border bg-red-500 border-red-600 text-white shadow-lg active:scale-95 transition-all">
-          주행
-        </button>
-        <button id="btn-extra" class="h-12 sm:h-14 flex flex-col items-center justify-center rounded-xl text-xs font-black border bg-orange-500 border-orange-600 text-white shadow-lg active:scale-95 transition-all">
-          할증
-        </button>
-        <button id="btn-complex" class="h-12 sm:h-14 flex flex-col items-center justify-center rounded-xl text-xs font-black border bg-blue-500 border-blue-600 text-white shadow-lg active:scale-95 transition-all">
-          복합
-        </button>
-        <button id="btn-paid" class="h-12 sm:h-14 flex flex-col items-center justify-center rounded-xl text-xs font-black border bg-gray-600 border-gray-700 text-white shadow-lg active:scale-95 transition-all">
-          지불
-        </button>
+      <!-- 제어 버튼들 (touch-action 포함하여 반응속도 극대화) -->
+      <div class="grid grid-cols-5 gap-1.5 sm:gap-2 w-full shrink-0 pb-2">
+        <button id="btn-vacant" class="h-14 sm:h-16 flex flex-col items-center justify-center rounded-xl text-xs sm:text-sm font-black border bg-green-500 border-green-600 text-gray-950 shadow-lg active:scale-95 transition-all">빈차</button>
+        <button id="btn-driving" class="h-14 sm:h-16 flex flex-col items-center justify-center rounded-xl text-xs sm:text-sm font-black border bg-red-500 border-red-600 text-white shadow-lg active:scale-95 transition-all">주행</button>
+        <button id="btn-extra" class="h-14 sm:h-16 flex flex-col items-center justify-center rounded-xl text-xs sm:text-sm font-black border bg-orange-500 border-orange-600 text-white shadow-lg active:scale-95 transition-all">할증</button>
+        <button id="btn-complex" class="h-14 sm:h-16 flex flex-col items-center justify-center rounded-xl text-xs sm:text-sm font-black border bg-blue-500 border-blue-600 text-white shadow-lg active:scale-95 transition-all">복합</button>
+        <button id="btn-paid" class="h-14 sm:h-16 flex flex-col items-center justify-center rounded-xl text-xs sm:text-sm font-black border bg-gray-600 border-gray-700 text-white shadow-lg active:scale-95 transition-all">지불</button>
       </div>
     </main>
-
   </div>
 
   <script>
+    // --- 설정 및 변수 ---
     const DAEGU_BASE_FARE = 4000;       
     const DAEGU_DIST_FARE_M = 130;     
     const DAEGU_TIME_FARE_S = 31;      
@@ -106,7 +121,9 @@
     let intervalId = null;
     let watchId = null;
     let prevPosition = null;
+    let wakeLock = null;
 
+    // --- HTML 엘리먼트 ---
     const badge = document.getElementById('status-badge');
     const fareDisplay = document.getElementById('fare-display');
     const distanceDisplay = document.getElementById('distance-display');
@@ -120,6 +137,30 @@
       paid: document.getElementById('btn-paid')
     };
 
+    // --- 화면 꺼짐 방지 (Wake Lock) ---
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (err) {
+        console.error('화면 꺼짐 방지 실패:', err.name, err.message);
+      }
+    }
+
+    function releaseWakeLock() {
+      if (wakeLock !== null) {
+        wakeLock.release().then(() => { wakeLock = null; });
+      }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (wakeLock !== null && document.visibilityState === 'visible') {
+        requestWakeLock();
+      }
+    });
+
+    // --- 거리 계산 ---
     function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
       const R = 6371e3; 
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -131,6 +172,7 @@
       return R * c;
     }
 
+    // --- UI 업데이트 ---
     function updateUI() {
       fareDisplay.textContent = fare.toLocaleString();
       distanceDisplay.textContent = (distance / 1000).toFixed(2);
@@ -149,15 +191,20 @@
       }
     }
 
+    // --- 요금 계산 ---
     function calculateFare() {
-      let extraFare = 0;
+      const timeToDistance = time * (DAEGU_DIST_FARE_M / DAEGU_TIME_FARE_S);
+      const totalEquivalentDistance = distance + timeToDistance;
 
-      if (distance > 2000) {
-        extraFare += Math.floor((distance - 2000) / DAEGU_DIST_FARE_M) * ADD_FARE_UNIT;
+      if (totalEquivalentDistance <= 2000) {
+        fare = DAEGU_BASE_FARE;
+        return; 
       }
-      extraFare += Math.floor(time / DAEGU_TIME_FARE_S) * ADD_FARE_UNIT;
 
-      let totalFare = DAEGU_BASE_FARE + extraFare;
+      const extraDist = totalEquivalentDistance - 2000;
+      const extraFareAmount = Math.floor(extraDist / DAEGU_DIST_FARE_M) * ADD_FARE_UNIT;
+      
+      let totalFare = DAEGU_BASE_FARE + extraFareAmount;
 
       if (status === 'extra') {
         totalFare = Math.round((totalFare * SURCHARGE_RATE) / 100) * 100;
@@ -168,12 +215,15 @@
       fare = totalFare;
     }
 
+    // --- 기능 제어 ---
     function startMeter() {
       status = 'driving';
       distance = 0;
       time = 0;
       prevPosition = null;
       fare = DAEGU_BASE_FARE;
+
+      requestWakeLock(); 
 
       intervalId = setInterval(() => {
         time++;
@@ -187,9 +237,7 @@
             const currentPosition = position.coords;
             if (prevPosition) {
               const d = getDistanceFromLatLonInM(prevPosition.latitude, prevPosition.longitude, currentPosition.latitude, currentPosition.longitude);
-              if (d > 5) {
-                distance += d;
-              }
+              if (d > 5) { distance += d; }
             }
             prevPosition = currentPosition;
             calculateFare();
@@ -204,6 +252,7 @@
     function stopMeter() {
       clearInterval(intervalId);
       if (watchId) navigator.geolocation.clearWatch(watchId);
+      releaseWakeLock(); 
     }
 
     function resetMeter() {
@@ -216,6 +265,7 @@
       updateUI();
     }
 
+    // --- 이벤트 리스너 ---
     buttons.vacant.addEventListener('click', () => { resetMeter(); });
     buttons.driving.addEventListener('click', () => { resetMeter(); startMeter(); });
     
